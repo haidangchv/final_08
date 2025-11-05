@@ -1,18 +1,20 @@
+
 import pygame
 from typing import Dict
-from ..core.game_state import GameState
-from ..core.move import Move
-from ..core.board import BLACK, WHITE
-from ..core.agents.human_agent import HumanAgent
-from ..core.agents.minimax_agent import MinimaxAgent
-from ..core.search.minimax import MinimaxSearcher
+from core.game_state import GameState
+from core.move import Move
+from core.board import BLACK, WHITE
+from core.agents.human_agent import HumanAgent
+from core.agents.minimax_agent import MinimaxAgent
+from core.search.minimax import MinimaxSearcher
+from config.settings import BOARD_SIZE
 
 CELL=60; MARGIN=60
 
 class GameScene:
     def __init__(self, screen, config):
         self.screen=screen
-        self.state=GameState.new_game(size=9)
+        self.state=GameState.new_game(size=BOARD_SIZE)
         if config.mode=="pvp":
             self.agents={BLACK:HumanAgent(), WHITE:HumanAgent()}
         else:

@@ -1,8 +1,9 @@
+
 from __future__ import annotations
 from typing import Tuple, Optional
-from ..game_state import GameState
-from ..move import Move
-from ..heuristic import heuristic_score
+from core.game_state import GameState
+from core.move import Move
+from .heuristic import heuristic_score
 
 class MinimaxSearcher:
     def __init__(self, depth_limit:int=2):

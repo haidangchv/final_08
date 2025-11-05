@@ -1,7 +1,8 @@
+
 from __future__ import annotations
 from typing import Optional
 from .base_agent import BaseAgent
-from ..move import Move
+from core.move import Move
 
 class HumanAgent(BaseAgent):
     def __init__(self):

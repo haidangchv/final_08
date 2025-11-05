@@ -1,6 +1,7 @@
+
 from __future__ import annotations
 from .base_agent import BaseAgent
-from ..search.minimax import MinimaxSearcher
+from core.search.minimax import MinimaxSearcher
 
 class MinimaxAgent(BaseAgent):
     def __init__(self, searcher: MinimaxSearcher, player_color:int):
