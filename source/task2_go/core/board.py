@@ -32,3 +32,6 @@ class Board:
         b = Board(self.size)
         b.grid = self.grid.copy()
         return b
+
+    def hash_key(self) -> int:
+        return hash(tuple(map(tuple, self.grid.tolist())))
