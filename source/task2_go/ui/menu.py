@@ -1,4 +1,5 @@
 import pygame
+import os 
 from dataclasses import dataclass
 from config.settings import DEFAULT_AI_DEPTH
 
@@ -40,10 +41,14 @@ class MenuScene:
 
         # === TẢI LOGO ===
         try:
-            logo_path = "assets/images/logo.png"
+            base_dir = os.path.dirname(__file__)  # đường dẫn thư mục chứa file hiện tại
+            root = os.path.dirname(base_dir)
+
+            logo_path = os.path.join(root, "assets", "images", "logo.png")
+
             self.logo = pygame.image.load(logo_path).convert_alpha()
-            # Resize nhỏ lại (ví dụ: 80x80)
             self.logo = pygame.transform.smoothscale(self.logo, (200, 200))
+
         except Exception as e:
             print(f"Không tải được logo: {e}")
             self.logo = None
@@ -162,10 +167,10 @@ class MenuScene:
         line4 = self.font_small.render("Bấm [1] chơi với người, [2] chơi với máy", True, (100, 100, 100))
 
         # Vị trí: cách lề trái 20px, cách đáy 50px
-        self.screen.blit(line1, (20, self.screen.get_height() - 200))
-        self.screen.blit(line2, (20, self.screen.get_height() - 170))
-        self.screen.blit(line3, (20, self.screen.get_height() - 140))
-        self.screen.blit(line4, (20, self.screen.get_height() - 110))
+        self.screen.blit(line1, (20, self.screen.get_height() - 150))
+        self.screen.blit(line2, (20, self.screen.get_height() - 120))
+        self.screen.blit(line3, (20, self.screen.get_height() - 90))
+        self.screen.blit(line4, (20, self.screen.get_height() - 60))
 
         # === XỬ LÝ SỰ KIỆN ===
         for e in events:

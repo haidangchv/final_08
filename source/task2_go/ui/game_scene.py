@@ -183,6 +183,6 @@ class GameScene:
         line2 = self.font_small.render("Bấm [SPACE] để pass lượt", True, (100, 100, 100))
 
         # Vị trí: cách lề trái 20px, cách đáy 50px
-        self.screen.blit(line1, (20, self.screen.get_height() - 130))
-        self.screen.blit(line2, (20, self.screen.get_height() - 100))
+        self.screen.blit(line1, (20, self.screen.get_height() - 100))
+        self.screen.blit(line2, (20, self.screen.get_height() - 70))
 
