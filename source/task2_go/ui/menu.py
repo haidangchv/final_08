@@ -1,7 +1,7 @@
 import pygame
 import os 
 from dataclasses import dataclass
-from config.settings import DEFAULT_AI_DEPTH
+from config.settings import DEFAULT_AI_DEPTH, CLOCK_SECONDS_PER_SIDE
 
 # === MÀU CHUẨN CỜ VÂY ===
 BLACK_STONE = (20, 20, 20)
@@ -12,6 +12,8 @@ class GameConfig:
     mode: str = "pvp"
     ai_depth: int = DEFAULT_AI_DEPTH
     human_color: int = 1  # 1=Đen, -1=Trắng
+    ai_vs_ai: bool = False       # True => 2 bên đều là AI
+    clock_seconds: int = CLOCK_SECONDS_PER_SIDE
 
 class MenuScene:
     def __init__(self, screen):
