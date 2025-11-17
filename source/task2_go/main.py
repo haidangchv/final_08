@@ -7,7 +7,7 @@ from core.agents.human_agent import HumanAgent
 
 def main():
     pygame.init()
-    screen = pygame.display.set_mode((900, 900))
+    screen = pygame.display.set_mode((1000, 840))
     pygame.display.set_caption("Go 9x9 — PvP / VsAI")
     clock = pygame.time.Clock()
 

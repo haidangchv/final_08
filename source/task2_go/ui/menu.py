@@ -29,6 +29,7 @@ class MenuScene:
         self.choice = None
         self.ai_depth = DEFAULT_AI_DEPTH
         self.human_color = 1
+        self.active_panel = None  # None | "pvp" | "vsai" -> modal open when set
         self.selectef_color = (240,210,160)
 
         # === MÀU SẮC ===
@@ -101,23 +102,29 @@ class MenuScene:
         pygame.draw.rect(self.screen, self.border_color, panel_rect, 5, border_radius=22)
 
         # === MENU ITEMS ===
+        # only two options shown; clicking one opens the modal to choose color / AI depth
         menu_items = [
             ("Người vs Người", "pvp"),
             ("Người vs Máy", "vsai"),
-            (f"Độ khó AI: {self.ai_depth}", None),
-            ("Người chơi:", None),
-            ("Bắt đầu", None),
         ]
 
         button_h = 60
         spacing = 12
         start_y = panel_rect.y + 50
+         # reset option rects for this frame
+        self._option_rects = []
 
         for i, (text, action) in enumerate(menu_items):
             y = start_y + i * (button_h + spacing)
             rect = pygame.Rect(0, 0, panel_w - 60, button_h)
             rect.centerx = self.W // 2
             rect.y = y
+
+            # keep clickable rects for options
+            if i < 2:
+                if not hasattr(self, "_option_rects"):
+                    self._option_rects = []
+                self._option_rects.append((rect.copy(), action))
 
             # MÀU NÚT – ĐÃ SỬA
             btn_color = self.panel_color 
@@ -156,34 +163,130 @@ class MenuScene:
             # CHỮ THƯỜNG
             font = self.small_font if i >= 2 else self.item_font
             self.draw_glow_text(text, font, color, rect.center, glow=False)
-
-        # === HƯỚNG DẪN ===
-        # hint = "1,2 chọn | +/- độ khó | C đổi màu | ENTER"
-        # hint_surf = self.tiny_font.render(hint, True, (120, 80, 40))
-        # self.screen.blit(hint_surf, (self.W//2 - hint_surf.get_width()//2, self.H - 50))
-        line1 = self.font_small.render("Bấm [C] để đổi quân cờ", True, (100, 100, 100))
-        line2 = self.font_small.render("Bấm [+/-] để chọn cấp độ khó", True, (100, 100, 100))
-        line3 = self.font_small.render("Bấm [ENTER] để bắt đầu", True, (100, 100, 100))
-        line4 = self.font_small.render("Bấm [1] chơi với người, [2] chơi với máy", True, (100, 100, 100))
-
-        # Vị trí: cách lề trái 20px, cách đáy 50px
-        self.screen.blit(line1, (20, self.screen.get_height() - 150))
-        self.screen.blit(line2, (20, self.screen.get_height() - 120))
-        self.screen.blit(line3, (20, self.screen.get_height() - 90))
-        self.screen.blit(line4, (20, self.screen.get_height() - 60))
-
         # === XỬ LÝ SỰ KIỆN ===
         for e in events:
+            # Mouse click -> open modal for option or handle modal actions
+            if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+                mx, my = e.pos
+                # open modal when clicking an option (only when no modal is already open)
+                if not self.active_panel and hasattr(self, "_option_rects"):
+                    for r, action in self._option_rects:
+                        if r.collidepoint(mx, my):
+                            self.active_panel = action  # "pvp" or "vsai"
+                            # ensure ai depth is at least 1
+                            self.ai_depth = max(1, self.ai_depth)
+                            break
+
+                # if modal open, check modal controls (we compute their rects below when drawing)
+                if self.active_panel:
+                    # build modal rects same as used in drawing
+                    modal_w, modal_h = 480, 300
+                    modal_rect = pygame.Rect(0, 0, modal_w, modal_h)
+                    modal_rect.center = (self.W//2, self.H//2)
+
+                    # color buttons
+                    col_w = 120
+                    col_h = 60
+                    col_x = modal_rect.centerx - col_w - 20
+                    col_y = modal_rect.y + 70
+                    black_rect = pygame.Rect(col_x, col_y, col_w, col_h)
+                    white_rect = pygame.Rect(col_x + col_w + 40, col_y, col_w, col_h)
+
+                    # ai depth buttons
+                    plus_rect = pygame.Rect(modal_rect.centerx + 90, col_y + 80, 40, 40)
+                    minus_rect = pygame.Rect(modal_rect.centerx - 130, col_y + 80, 40, 40)
+
+                    # start/back
+                    start_rect = pygame.Rect(modal_rect.centerx - 90, modal_rect.bottom - 70, 180, 44)
+                    back_rect = pygame.Rect(modal_rect.left + 20, modal_rect.bottom - 70, 100, 44)
+
+                    if black_rect.collidepoint(mx, my):
+                        self.human_color = 1
+                    if white_rect.collidepoint(mx, my):
+                        self.human_color = -1
+                    if plus_rect.collidepoint(mx, my) and self.active_panel == "vsai":
+                        self.ai_depth += 1
+                    if minus_rect.collidepoint(mx, my) and self.active_panel == "vsai":
+                        self.ai_depth = max(1, self.ai_depth - 1)
+                    if back_rect.collidepoint(mx, my):
+                        self.active_panel = None
+                    if start_rect.collidepoint(mx, my):
+                        # return config
+                        cfg = GameConfig(self.active_panel, self.ai_depth, self.human_color)
+                        self.active_panel = None
+                        return cfg
+
             if e.type == pygame.KEYDOWN:
-                if e.key == pygame.K_1: self.choice = "pvp"
-                if e.key == pygame.K_2: self.choice = "vsai"
-                if e.key in (pygame.K_PLUS, pygame.K_KP_PLUS, pygame.K_EQUALS):
-                    self.ai_depth += 1
-                if e.key == pygame.K_MINUS:
-                    self.ai_depth = max(1, self.ai_depth - 1)
-                if e.key == pygame.K_c:
+                # keyboard: open modals
+                if e.key == pygame.K_1:
+                    self.active_panel = "pvp"
+                if e.key == pygame.K_2:
+                    self.active_panel = "vsai"
+
+                # only adjust ai depth when vsai modal is open
+                if self.active_panel == "vsai":
+                    if e.key in (pygame.K_PLUS, pygame.K_KP_PLUS, pygame.K_EQUALS):
+                        self.ai_depth += 1
+                    if e.key == pygame.K_MINUS:
+                        self.ai_depth = max(1, self.ai_depth - 1)
+
+                # toggle color only when a modal is open
+                if self.active_panel and e.key == pygame.K_c:
                     self.human_color *= -1
-                if e.key == pygame.K_RETURN and self.choice:
-                    return GameConfig(self.choice, self.ai_depth, self.human_color)
+
+                # confirm selection
+                if e.key == pygame.K_RETURN and self.active_panel:
+                    cfg = GameConfig(self.active_panel, self.ai_depth, self.human_color)
+                    self.active_panel = None
+                    return cfg
+
+        # if modal open, draw it on top
+        if self.active_panel:
+            modal_w, modal_h = 480, 300
+            modal_rect = pygame.Rect(0, 0, modal_w, modal_h)
+            modal_rect.center = (self.W//2, self.H//2)
+
+            # dark overlay
+            overlay = pygame.Surface((self.W, self.H), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 120))
+            self.screen.blit(overlay, (0, 0))
+
+            # modal box
+            pygame.draw.rect(self.screen, (240, 230, 200), modal_rect, border_radius=16)
+            pygame.draw.rect(self.screen, self.border_color, modal_rect, 4, border_radius=16)
+
+            title = "Tham số" if self.active_panel == "pvp" else "Chọn màu & độ khó AI"
+            self.draw_glow_text(title, self.item_font, self.text_color, (modal_rect.centerx, modal_rect.y + 36), glow=False)
+
+            # color selection
+            col_w = 120
+            col_h = 60
+            col_x = modal_rect.centerx - col_w - 20
+            col_y = modal_rect.y + 70
+            black_rect = pygame.Rect(col_x, col_y, col_w, col_h)
+            white_rect = pygame.Rect(col_x + col_w + 40, col_y, col_w, col_h)
+            # draw color buttons
+            self.draw_rounded_rect(self.screen, black_rect, self.panel_color if self.human_color != 1 else self.selectef_color, 12)
+            self.draw_rounded_rect(self.screen, white_rect, self.panel_color if self.human_color != -1 else self.selectef_color, 12)
+            self.draw_glow_text("Đen", self.small_font, self.text_color, black_rect.center, glow=False)
+            self.draw_glow_text("Trắng", self.small_font, self.text_color, white_rect.center, glow=False)
+
+            # AI depth controls (only show for vsai)
+            if self.active_panel == "vsai":
+                self.draw_glow_text(f"Độ khó: {self.ai_depth}", self.small_font, self.text_color, (modal_rect.centerx, col_y + 100), glow=False)
+                plus_rect = pygame.Rect(modal_rect.centerx + 90, col_y + 80, 40, 40)
+                minus_rect = pygame.Rect(modal_rect.centerx - 130, col_y + 80, 40, 40)
+                self.draw_rounded_rect(self.screen, minus_rect, self.panel_color, 8)
+                self.draw_rounded_rect(self.screen, plus_rect, self.panel_color, 8)
+                self.draw_glow_text("+", self.item_font, self.text_color, plus_rect.center, glow=False)
+                self.draw_glow_text("-", self.item_font, self.text_color, minus_rect.center, glow=False)
+
+            # start and back
+            start_rect = pygame.Rect(modal_rect.centerx - 90, modal_rect.bottom - 70, 180, 44)
+            back_rect = pygame.Rect(modal_rect.left + 20, modal_rect.bottom - 70, 100, 44)
+            self.draw_rounded_rect(self.screen, start_rect, (80,140,80), 10)
+            self.draw_rounded_rect(self.screen, back_rect, self.panel_color, 10)
+            self.draw_glow_text("Bắt đầu", self.small_font, (240,255,200), start_rect.center, glow=False)
+            self.draw_glow_text("Quay lại", self.small_font, self.text_color, back_rect.center, glow=False)
 
         return None
