@@ -213,7 +213,7 @@ class MenuScene:
                 # only adjust ai depth when vsai modal is open
                 if self.active_panel == "vsai":
                     if e.key in (pygame.K_PLUS, pygame.K_KP_PLUS, pygame.K_EQUALS):
-                        self.ai_depth += 1
+                        self.ai_depth = min (10, self.ai_depth + 1)
                     if e.key == pygame.K_MINUS:
                         self.ai_depth = max(1, self.ai_depth - 1)
 
@@ -261,7 +261,7 @@ class MenuScene:
                     
                     if self.active_panel == "vsai":
                         if plus_rect.collidepoint(e.pos):
-                            self.ai_depth += 1
+                            self.ai_depth = min (10, self.ai_depth + 1)
                         elif minus_rect.collidepoint(e.pos):
                             self.ai_depth = max(1, self.ai_depth - 1)
                 

@@ -7,6 +7,7 @@ from core.agents.human_agent import HumanAgent
 from core.agents.minimax_agent import MinimaxAgent
 from core.search.minimax import MinimaxSearcher
 from config.settings import BOARD_SIZE
+import os
 
 # Nếu trong settings có ON_TIMEOUT_ACTION thì import, còn không thì dùng fallback:
 try:
@@ -46,6 +47,30 @@ class GameScene:
         self.font_small = pygame.font.SysFont("arial",15)
         self.font_big = pygame.font.SysFont("arial",32, bold=True)
 
+        # === FONTS ===
+        try:
+            base_dir = os.path.dirname(__file__)
+            root = os.path.dirname(base_dir)  # trỏ tới thư mục gốc dự án
+            
+            bold_path   = os.path.join(root, "assets", "fonts", "bold.ttf")
+            regular_path = os.path.join(root, "assets", "fonts", "normal.ttf")
+            
+            self.title_font = pygame.font.Font(bold_path, 80)      # CỜ VÂY
+            self.item_font  = pygame.font.Font(bold_path, 38)      # 2 nút lớn
+            self.big_font   = pygame.font.Font(bold_path, 35)
+            self.medium_font = pygame.font.Font(bold_path, 24)
+            self.small_font  = pygame.font.Font(regular_path, 15)
+
+            print("Load font Sarabun thành công từ assets/fonts!")
+        except Exception as e:
+            print("Không tải được font, dùng font hệ thống:", e)
+            # fallback nếu thiếu font
+            self.title_font = pygame.font.SysFont("arial", 90, bold=True)
+            self.item_font  = pygame.font.SysFont("arial", 38, bold=True)
+            self.big_font   = pygame.font.SysFont("arial", 35, bold = True)
+            self.small_font = pygame.font.SysFont("arial", 26)
+            self.medium_font = pygame.font.SysFont("arial", 24, bold = True)
+
         # ====== ĐỒNG HỒ MỖI BÊN ======
         # tổng thời gian mỗi bên (giây), truyền từ menu qua config.clock_seconds
         total = getattr(config, "clock_seconds", 300)  # fallback 5 phút mỗi bên nếu thiếu
@@ -53,6 +78,16 @@ class GameScene:
         self._last_tick_ms = pygame.time.get_ticks()
         self.time_over = False
         self.time_over_winner = None  # 1 hoặc -1
+
+    def draw_glow_text(self, text, font, color, center, glow=True):
+        if glow:
+            shadow = font.render(text, True, (0, 0, 0, 80))
+            shadow_rect = shadow.get_rect(center=(center[0]+3, center[1]+3))
+            self.screen.blit(shadow, shadow_rect)
+        txt = font.render(text, True, color)
+        txt_rect = txt.get_rect(center=center)
+        self.screen.blit(txt, txt_rect)
+        return txt_rect
 
     # ====== VẼ QUÂN ======
     def draw_stone(self, center, is_black, scale=1.0):
@@ -131,7 +166,7 @@ class GameScene:
         return None
 
     # ====== VẼ UI ======
-    def draw(self):
+    def draw(self, events=[]):
         self.screen.fill((230, 200, 150))  # Nền gỗ
         size = self.state.board.size
         cell = self.cell_size
@@ -208,8 +243,8 @@ class GameScene:
         self.draw_stone(white_center, is_black=False, scale=1.3)
 
         # Đồng hồ
-        blk_txt = self.font_big.render(_fmt_time(self.clock_total[BLACK]), True, (15,15,15))
-        wht_txt = self.font_big.render(_fmt_time(self.clock_total[WHITE]), True, (15,15,15))
+        blk_txt = self.big_font.render(_fmt_time(self.clock_total[BLACK]), True, (15,15,15))
+        wht_txt = self.big_font.render(_fmt_time(self.clock_total[WHITE]), True, (15,15,15))
         self.screen.blit(blk_txt, blk_txt.get_rect(center=(black_center[0], top_y + 52)))
         self.screen.blit(wht_txt, wht_txt.get_rect(center=(white_center[0], top_y + 52)))
 
@@ -224,12 +259,89 @@ class GameScene:
         # Banner hết giờ
         if self.time_over:
             msg = f"Hết giờ! {'Đen' if self.time_over_winner==1 else 'Trắng'} thắng."
-            banner = self.font_big.render(msg, True, (220,30,30))
+            banner = self.big_font.render(msg, True, (220,30,30))
             rect = banner.get_rect(center=(self.W//2, max(30, my-160)))
             self.screen.blit(banner, rect)
 
         # Hướng dẫn
-        line1 = self.font_small.render("Bấm [ESC] để quay lại menu", True, (100, 100, 100))
-        line2 = self.font_small.render("Bấm [SPACE] để pass lượt", True, (100, 100, 100))
-        self.screen.blit(line1, (20, self.screen.get_height() - 100))
-        self.screen.blit(line2, (20, self.screen.get_height() - 70))
+        # Vị trí 2 nút
+        btn_w, btn_h = 180, 68
+        spacing = 100 
+        center_y = self.H - 100
+
+        back_rect = pygame.Rect(self.W//2 - btn_w - spacing//2, center_y, btn_w, btn_h)
+        pass_rect = pygame.Rect(self.W//2 + spacing//2, center_y, btn_w, btn_h)
+
+        mx, my = pygame.mouse.get_pos()
+
+        click_event = None
+        for e in events:
+            if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+                click_event = e
+                break  # chỉ cần 1 click
+
+        # === XỬ LÝ CLICK CHO 2 NÚT ===
+        if click_event:
+            if pass_rect.collidepoint(click_event.pos):
+                if not self.state.is_terminal():
+                    self.state = self.state.apply_move(Move.pass_())
+            elif back_rect.collidepoint(click_event.pos):
+                self.show_quit_confirm = True
+
+        # === VẼ 2 NÚT ===
+        for rect, text, is_back in [(back_rect, "Quay lại", True), (pass_rect, "Pass lượt", False)]:
+            hovered = rect.collidepoint(mx, my)
+
+            # Màu khác nhau cho 2 nút
+            if is_back:
+                base = (240, 210, 170)   
+                hover = (255, 235, 200)
+            else:
+                base = (240, 210, 170)  
+                hover = (255, 235, 200)
+
+            color = hover if hovered else base
+
+            pygame.draw.rect(self.screen, color, rect, border_radius=36)
+            pygame.draw.rect(self.screen, (160, 110, 70), rect, 3, border_radius=36)
+
+            txt_col = (100, 50, 15) if hovered else (70, 35, 10)
+            self.draw_glow_text(text, self.big_font, txt_col, rect.center, glow=False)
+
+        # === POPUP XÁC NHẬN THOÁT ===
+        if getattr(self, "show_quit_confirm", False):
+            overlay = pygame.Surface((self.W, self.H), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 180))
+            self.screen.blit(overlay, (0, 0))
+
+            popup = pygame.Rect(0, 0, 580, 340)
+            popup.center = (self.W//2, self.H//2)
+
+            pygame.draw.rect(self.screen, (248, 242, 215), popup, border_radius=40)
+            pygame.draw.rect(self.screen, (180, 120, 70), popup, 3, border_radius=40)
+
+            self.draw_glow_text("Bạn có chắc muốn thoát không?", 
+                              self.big_font, (140, 50, 20), (self.W//2, popup.centery - 70), glow=False)
+
+            # Nút Không (trái) – Có (phải)
+            no_rect  = pygame.Rect(popup.left + 80,  popup.bottom - 130, 180, 80)
+            yes_rect = pygame.Rect(popup.right - 260, popup.bottom - 130, 180, 80)
+
+            for rect, text, is_yes in [(no_rect, "Không", False), (yes_rect, "Có", True)]:
+                hovered = rect.collidepoint(mx, my)
+                bg = (240, 210, 170) if not is_yes else (90, 170, 90)
+                if hovered:
+                    bg = (255, 230, 190) if not is_yes else (110, 190, 110)
+
+                pygame.draw.rect(self.screen, bg, rect, border_radius=40)
+                pygame.draw.rect(self.screen, (180, 120, 70), rect, 2, border_radius=40)
+
+                txt_col = (80, 40, 10) if not is_yes else (255, 255, 255)
+                self.draw_glow_text(text, self.big_font, txt_col, rect.center, glow=False)
+
+                # Xử lý click trong popup
+                if click_event and rect.collidepoint(click_event.pos):
+                    if is_yes:
+                        return "menu"                    # về menu
+                    else:
+                        self.show_quit_confirm = False   # đóng popup
