@@ -24,14 +24,16 @@ class MenuScene:
             base_dir = os.path.dirname(__file__)
             root = os.path.dirname(base_dir)  # trỏ tới thư mục gốc dự án
             
-            bold_path   = os.path.join(root, "assets", "fonts", "Sarabun-Bold.ttf")
-            regular_path = os.path.join(root, "assets", "fonts", "Sarabun-Regular.ttf")
+            bold_path   = os.path.join(root, "assets", "fonts", "bold.ttf")
+            regular_path = os.path.join(root, "assets", "fonts", "normal.ttf")
             
             self.title_font = pygame.font.Font(bold_path, 80)      # CỜ VÂY
             self.item_font  = pygame.font.Font(bold_path, 38)      # 2 nút lớn
             self.big_font   = pygame.font.Font(bold_path, 35)
-            self.medium_font = pygame.font.Font(regular_path, 24)
+            self.medium_font = pygame.font.Font(bold_path, 24)
             self.small_font  = pygame.font.Font(regular_path, 15)
+
+            print("Load font Sarabun thành công từ assets/fonts!")
         except Exception as e:
             print("Không tải được font, dùng font hệ thống:", e)
             # fallback nếu thiếu font
@@ -70,6 +72,8 @@ class MenuScene:
             print(f"Không tải được logo: {e}")
             self.logo = None
 
+        self.just_opened_modal = False
+
     def draw_rounded_rect(self, surface, rect, color, radius=15):
         pygame.draw.rect(surface, color, rect, border_radius=radius)
 
@@ -102,18 +106,18 @@ class MenuScene:
         self.screen.fill(self.bg_color)
 
         # === TIÊU ĐỀ ===
-        self.draw_glow_text("CỜ VÂY", self.title_font, self.title_color, (self.W//2, 100))
+        self.draw_glow_text("CỜ VÂY", self.title_font, self.title_color, (self.W//2, 140))
                 # === HIỂN THỊ LOGO DƯỚI CHỮ "CỜ VÂY" ===
         if self.logo:
             logo_x = self.W // 2
-            logo_y = 150 + 90  # Dưới chữ 90px
+            logo_y = 320  # Dưới chữ 90px
             logo_rect = self.logo.get_rect(center=(logo_x, logo_y))
             self.screen.blit(self.logo, logo_rect)
 
         # === BẢNG MENU ===
         panel_w, panel_h = 420, 280 
         panel_rect = pygame.Rect(0, 0, panel_w, panel_h)
-        panel_rect.center = (self.W//2, self.H//2 + 20)
+        panel_rect.center = (self.W//2, self.H//2 + 130)
         pygame.draw.rect(self.screen, (245, 230, 195), panel_rect, border_radius=30)
         pygame.draw.rect(self.screen, self.border_color, panel_rect, 6, border_radius=30)
 
@@ -153,7 +157,7 @@ class MenuScene:
                 border_width = 4
 
             # Vẽ nút
-            self.draw_rounded_rect(self.screen, rect, btn_color, 18)
+            self.draw_rounded_rect(self.screen, rect, btn_color, 15)
             pygame.draw.rect(self.screen, self.border_color, rect, border_width, border_radius=18)
 
             # Chữ sáng hơn tí khi hover (giống nút Bắt đầu)
@@ -196,50 +200,8 @@ class MenuScene:
                             self.active_panel = action  # "pvp" or "vsai"
                             # ensure ai depth is at least 1
                             self.ai_depth = max(1, self.ai_depth)
+                            self.just_opened_modal = True 
                             break
-
-                # if modal open, check modal controls (we compute their rects below when drawing)
-                if self.active_panel and e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
-                    # Tính lại rect giống hệt phần vẽ ở dưới (đảm bảo 100% trùng)
-                    modal_w, modal_h = 480, 300
-                    modal_rect = pygame.Rect(0, 0, modal_w, modal_h)
-                    modal_rect.center = (self.W//2, self.H//2)
-
-                    # Nút màu
-                    col_w, col_h = 120, 60
-                    col_x = modal_rect.centerx - col_w - 20
-                    col_y = modal_rect.y + 70
-                    black_rect = pygame.Rect(col_x, col_y, col_w, col_h)
-                    white_rect = pygame.Rect(col_x + col_w + 40, col_y, col_w, col_h)
-
-                    # Nút độ khó (vsai)
-                    plus_rect  = pygame.Rect(modal_rect.centerx + 90,  col_y + 80, 40, 40)
-                    minus_rect = pygame.Rect(modal_rect.centerx - 130, col_y + 80, 40, 40)
-
-                    # Nút Back & Start (chính xác y hệt phần vẽ)
-                    btn_y = modal_rect.bottom - 100
-                    back_w, start_w, gap = 160, 200, 90
-                    total_w = back_w + gap + start_w
-                    start_x = modal_rect.centerx - total_w // 2
-                    back_rect  = pygame.Rect(start_x,                  btn_y, back_w,  76)
-                    start_rect = pygame.Rect(start_x + back_w + gap,   btn_y, start_w, 76)
-
-                    # === KIỂM TRA CLICK – DÙNG e.pos MỚI NHẤT ===
-                    if black_rect.collidepoint(e.pos):
-                        self.human_color = 1
-                    elif white_rect.collidepoint(e.pos):
-                        self.human_color = -1
-                    elif self.active_panel == "vsai" and plus_rect.collidepoint(e.pos):
-                        self.ai_depth += 1
-                    elif self.active_panel == "vsai" and minus_rect.collidepoint(e.pos):
-                        self.ai_depth = max(1, self.ai_depth - 1)
-                    elif back_rect.collidepoint(e.pos):
-                        self.active_panel = None
-                    elif start_rect.collidepoint(e.pos):
-                        cfg = GameConfig(self.active_panel, self.ai_depth, self.human_color)
-                        self.active_panel = None
-                        self.choice = None 
-                        return cfg
 
             if e.type == pygame.KEYDOWN:
                 # keyboard: open modals
@@ -269,69 +231,91 @@ class MenuScene:
         # if modal open, draw it on top
         # === ĐỘ KHÓ AI ===
         if self.active_panel:
-            modal_w, modal_h = 480, 300
+            modal_w, modal_h = 540, 360
             modal_rect = pygame.Rect(0, 0, modal_w, modal_h)
             modal_rect.center = (self.W//2, self.H//2)
 
-            # dark overlay
+            # --- Tạo tất cả rect trước ---
+            stone_size = 38
+            btn_size = 88, 88
+
+            black_rect  = pygame.Rect(modal_rect.centerx - 140, modal_rect.y + 85, *btn_size)
+            white_rect  = pygame.Rect(modal_rect.centerx + 52,  modal_rect.y + 85, *btn_size)
+            black_rect  = black_rect.inflate(10, 10)   # vùng click rộng
+            white_rect  = white_rect.inflate(10, 10)
+
+            plus_rect   = pygame.Rect(modal_rect.centerx + 100,  modal_rect.y + 202, 40, 40)
+            minus_rect  = pygame.Rect(modal_rect.centerx - 140, modal_rect.y + 202, 40, 40)
+
+            btn_y = modal_rect.bottom - 96
+            back_rect   = pygame.Rect(modal_rect.centerx - 210, btn_y, 148, 64)
+            start_rect  = pygame.Rect(modal_rect.centerx + 62,  btn_y, 148, 64)
+
+            # --- Xử lý click (duy nhất 1 chỗ) ---
+            for e in events:
+                if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+                    if black_rect.collidepoint(e.pos):
+                        self.human_color = 1
+                    elif white_rect.collidepoint(e.pos):
+                        self.human_color = -1
+                    
+                    if self.active_panel == "vsai":
+                        if plus_rect.collidepoint(e.pos):
+                            self.ai_depth += 1
+                        elif minus_rect.collidepoint(e.pos):
+                            self.ai_depth = max(1, self.ai_depth - 1)
+                
+                    if back_rect.collidepoint(e.pos):
+                        self.active_panel = None
+                        self.just_opened_modal = False
+                    elif start_rect.collidepoint(e.pos) and not self.just_opened_modal:
+                        cfg = GameConfig(mode=self.active_panel, ai_depth=self.ai_depth, human_color=self.human_color)
+                        self.active_panel = None
+                        return cfg
+
+            # --- Vẽ modal ---
             overlay = pygame.Surface((self.W, self.H), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 120))
+            overlay.fill((0, 0, 0, 130))
             self.screen.blit(overlay, (0, 0))
 
-            # modal box
-            pygame.draw.rect(self.screen, (240, 230, 200), modal_rect, border_radius=16)
-            pygame.draw.rect(self.screen, self.border_color, modal_rect, 4, border_radius=16)
+            pygame.draw.rect(self.screen, (245, 238, 210), modal_rect, border_radius=20)
+            pygame.draw.rect(self.screen, (180, 140, 90), modal_rect, 6, border_radius=20)
 
             title = "Tham số" if self.active_panel == "pvp" else "Chọn màu & độ khó AI"
-            self.draw_glow_text(title, self.item_font, self.text_color, (modal_rect.centerx, modal_rect.y + 36), glow=False)
+            self.draw_glow_text(title, self.item_font, (80, 50, 20), (modal_rect.centerx, modal_rect.y + 44), glow=False)
 
-            # color selection
-            col_w = 120
-            col_h = 60
-            col_x = modal_rect.centerx - col_w - 20
-            col_y = modal_rect.y + 70
-            black_rect = pygame.Rect(col_x, col_y, col_w, col_h)
-            white_rect = pygame.Rect(col_x + col_w + 40, col_y, col_w, col_h)
-            # draw color buttons
-            self.draw_rounded_rect(self.screen, black_rect, self.panel_color if self.human_color != 1 else self.selectef_color, 12)
-            self.draw_rounded_rect(self.screen, white_rect, self.panel_color if self.human_color != -1 else self.selectef_color, 12)
-            self.draw_glow_text("Đen", self.small_font, self.text_color, black_rect.center, glow=False)
-            self.draw_glow_text("Trắng", self.small_font, self.text_color, white_rect.center, glow=False)
-
-            # AI depth controls (only show for vsai)
-            if self.active_panel == "vsai":
-                self.draw_glow_text(f"Độ khó: {self.ai_depth}", self.small_font, self.text_color, (modal_rect.centerx, col_y + 100), glow=False)
-                plus_rect = pygame.Rect(modal_rect.centerx + 90, col_y + 80, 40, 40)
-                minus_rect = pygame.Rect(modal_rect.centerx - 130, col_y + 80, 40, 40)
-                self.draw_rounded_rect(self.screen, minus_rect, self.panel_color, 8)
-                self.draw_rounded_rect(self.screen, plus_rect, self.panel_color, 8)
-                self.draw_glow_text("+", self.item_font, self.text_color, plus_rect.center, glow=False)
-                self.draw_glow_text("-", self.item_font, self.text_color, minus_rect.center, glow=False)
-
-            # start and back
-            btn_y = modal_rect.bottom - 100
-            btn_height = 60
-
-            # Tính toán để căn giữa đẹp đét
-            back_w, start_w = 158, 200
-            gap = 90  # khoảng cách giữa 2 nút
-            total_width = back_w + gap + start_w
-            start_x = modal_rect.centerx - total_width // 2
-
-            back_rect  = pygame.Rect(start_x,                  btn_y, back_w,  btn_height)
-            start_rect = pygame.Rect(start_x + back_w + gap,   btn_y, start_w, btn_height)
-
-            # Hover
             mx, my = pygame.mouse.get_pos()
+            for rect, is_black, selected in [(black_rect, True, self.human_color == 1),
+                                            (white_rect, False, self.human_color == -1)]:
+                hovered = rect.collidepoint(mx, my)
+                bg = (255, 250, 200) if selected else (248, 240, 200)
+                if hovered: bg = (255, 255, 210)
+                self.draw_rounded_rect(self.screen, rect, bg, 26)
+                if selected:
+                    pygame.draw.rect(self.screen, (255, 160, 60), rect, 7, border_radius=26)
+                elif hovered:
+                    pygame.draw.rect(self.screen, (255, 200, 100), rect, 5, border_radius=26)
+                self.draw_go_piece(rect.center, is_black, stone_size)
+
+            if self.active_panel == "vsai":
+                self.draw_glow_text(f"Độ khó: {self.ai_depth}", self.medium_font, self.text_color,
+                                  (modal_rect.centerx, modal_rect.y + 222), glow=False)
+                for r, txt in [(minus_rect, "−"), (plus_rect, "+")]:
+                    hov = r.collidepoint(mx, my)
+                    col = (255, 235, 170) if hov else (240, 210, 160)
+                    self.draw_rounded_rect(self.screen, r, col, 12)
+                    pygame.draw.rect(self.screen, self.border_color, r, 3, border_radius=12)
+                    self.draw_glow_text(txt, self.big_font, self.text_color, r.center, glow=False)
+
             back_hov  = back_rect.collidepoint(mx, my)
-            start_hov = start_rect.collidepoint(mx, my)
+            start_hov = start_rect.collidepoint(mx, my) and not self.just_opened_modal
+            self.draw_rounded_rect(self.screen, back_rect,  (255, 230, 180) if back_hov else (240, 210, 170), 32)
+            self.draw_rounded_rect(self.screen, start_rect, (100, 200, 100) if start_hov else (80, 170, 80), 32)
+            pygame.draw.rect(self.screen, self.border_color, back_rect,  4, border_radius=32)
+            pygame.draw.rect(self.screen, self.border_color, start_rect, 4, border_radius=32)
+            self.draw_glow_text("Quay lại", self.medium_font, self.text_color, back_rect.center,  glow=False)
+            self.draw_glow_text("Bắt đầu",  self.medium_font, (255,255,255),      start_rect.center, glow=False)
 
-            # Vẽ nút
-            self.draw_rounded_rect(self.screen, back_rect,  (255, 230, 180) if back_hov else (240, 210, 170), 28)
-            self.draw_rounded_rect(self.screen, start_rect, (100, 200, 100) if start_hov else (85, 170, 85), 28)
-            pygame.draw.rect(self.screen, self.border_color, back_rect,  3, border_radius=28)
-            pygame.draw.rect(self.screen, self.border_color, start_rect, 3, border_radius=28)
+            self.just_opened_modal = False
 
-            self.draw_glow_text("Quay lại", self.big_font, self.text_color, back_rect.center,  glow=False)
-            self.draw_glow_text("Bắt đầu",  self.big_font, (255,255,255),       start_rect.center, glow=False)
         return None
