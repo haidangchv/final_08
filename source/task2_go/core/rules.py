@@ -85,3 +85,48 @@ class Rules:
 
         # (Tự sát đã tránh ở is_legal; không cần check lại nếu tin vào is_legal)
         return captured
+
+    # --- Bổ sung: Tính Lãnh thổ ---
+    def calculate_territory(self, board: Board) -> Tuple[int, int, Set[Tuple[int,int]]]:
+        """
+        Tính lãnh thổ (Territory) và các giao điểm vô chủ (Dama).
+        Trả về: (Black_Territory, White_Territory, Dama_Coords)
+        """
+        b_terr, w_terr = 0, 0
+        visited: Set[Tuple[int,int]] = set()
+        dama: Set[Tuple[int,int]] = set()
+
+        for y in range(board.size):
+            for x in range(board.size):
+                if board.get(x, y) == EMPTY and (x, y) not in visited:
+                    # BFS để tìm vùng trống
+                    region, borders = self._collect_empty_region(board, x, y)
+                    visited.update(region)
+                    
+                    # Kiểm tra màu bao vây
+                    border_colors = {board.get(bx, by) for bx, by in borders}
+                    
+                    if BLACK in border_colors and WHITE not in border_colors:
+                        b_terr += len(region) # Bao vây bởi Đen
+                    elif WHITE in border_colors and BLACK not in border_colors:
+                        w_terr += len(region) # Bao vây bởi Trắng
+                    else:
+                        dama.update(region) # Vô chủ (Dama) hoặc bị tranh chấp
+        
+        return b_terr, w_terr, dama
+
+    def _collect_empty_region(self, board: Board, x: int, y: int) -> Tuple[Set[Tuple[int,int]], Set[Tuple[int,int]]]:
+        """BFS gom vùng trống và tìm các quân cờ bao vây (biên)."""
+        q = [(x, y)]
+        region: Set[Tuple[int,int]] = {(x, y)}
+        border: Set[Tuple[int,int]] = set()
+        
+        while q:
+            cx, cy = q.pop()
+            for nx, ny in board.neighbors(cx, cy):
+                if board.get(nx, ny) == EMPTY and (nx, ny) not in region:
+                    region.add((nx, ny))
+                    q.append((nx, ny))
+                elif board.get(nx, ny) != EMPTY:
+                    border.add((nx, ny))
+        return region, border

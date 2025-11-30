@@ -24,8 +24,8 @@ class MenuScene:
             base_dir = os.path.dirname(__file__)
             root = os.path.dirname(base_dir)  # trỏ tới thư mục gốc dự án
             
-            bold_path   = os.path.join(root, "assets", "fonts", "Sarabun-Bold.ttf")
-            regular_path = os.path.join(root, "assets", "fonts", "Sarabun-Regular.ttf")
+            bold_path   = os.path.join(root, "assets", "fonts", "bold.ttf")
+            regular_path = os.path.join(root, "assets", "fonts", "normal.ttf")
             
             self.title_font = pygame.font.Font(bold_path, 80)      # CỜ VÂY
             self.item_font  = pygame.font.Font(bold_path, 38)      # 2 nút lớn

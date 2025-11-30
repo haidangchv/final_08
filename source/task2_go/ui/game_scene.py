@@ -53,6 +53,7 @@ class GameScene:
         self._last_tick_ms = pygame.time.get_ticks()
         self.time_over = False
         self.time_over_winner = None  # 1 hoặc -1
+        self.final_result = None
 
     # ====== VẼ QUÂN ======
     def draw_stone(self, center, is_black, scale=1.0):
@@ -114,14 +115,31 @@ class GameScene:
                 mv=Move.play(i,j)
                 if any(m.kind=='PLAY' and m.x==i and m.y==j for m in self.state.legal_moves()):
                     agent.set_pending_move(mv)
+        else:
+            # Kiểm tra click nút Đầu hàng
+            if self.resign_rect.collidepoint(pos):
+                player = self.state.to_play
+                agent = self.agents[player]
+                if isinstance(agent, HumanAgent) and not self.state.is_terminal():
+                    agent.set_pending_move(Move.resign())
 
     # ====== BƯỚC CẬP NHẬT ======
     def step(self):
         # trừ thời gian theo thực
         self._tick_clock()
 
+        # 1. Nếu game đã kết thúc HOẶC đã hết giờ, tính điểm và dừng
         if self.state.is_terminal() or self.time_over:
-            return "done"
+            if not self.final_result and not self.time_over:
+                # Nếu game kết thúc bởi 2 PASS/RESIGN (chứ không phải hết giờ)
+                try:
+                    # state.score() sẽ tính điểm và xác định người thắng.
+                    self.final_result = self.state.score()
+                except ValueError:
+                    # Nếu state.is_terminal() là True nhưng có lỗi tính điểm (không nên xảy ra)
+                    pass
+            
+            return "done" # Dừng cập nhật logic game
 
         player=self.state.to_play; agent=self.agents[player]
         mv=agent.select_move(self.state)
@@ -221,11 +239,63 @@ class GameScene:
         else:
             self.screen.blit(turn_text, turn_text.get_rect(center=(white_center[0], top_y + 86)))
 
-        # Banner hết giờ
+        # --- BỔ SUNG: NÚT ĐẦU HÀNG (RESIGN) ---
+        btn_w, btn_h = 100, 30
+        btn_x = self.W - btn_w - 20 # Góc trên bên phải
+        btn_y = 20
+        
+        # Lưu rect để xử lý click
+        self.resign_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
+        
+        is_human_turn = isinstance(self.agents[current_player], HumanAgent)
+        
+        # Nút Đầu hàng chỉ khả dụng khi đang là lượt người chơi và game chưa kết thúc
+        if is_human_turn and not self.state.is_terminal():
+            # Màu nút
+            btn_color = (200, 50, 50)
+            hover_color = (255, 80, 80)
+            
+            mx, my = pygame.mouse.get_pos()
+            is_hovered = self.resign_rect.collidepoint(mx, my)
+
+            # Vẽ nút (dùng draw.rect đơn giản)
+            pygame.draw.rect(self.screen, hover_color if is_hovered else btn_color, self.resign_rect, border_radius=8)
+            
+            # Vẽ chữ
+            resign_text_surf = self.font_small.render("ĐẦU HÀNG", True, (255, 255, 255))
+            text_rect = resign_text_surf.get_rect(center=self.resign_rect.center)
+            self.screen.blit(resign_text_surf, text_rect)
+        else:
+            self.resign_rect = pygame.Rect(0, 0, 0, 0) # Vô hiệu hóa click
+        
+        # Banner HẾT GIỜ / KẾT QUẢ ĐIỂM
+        banner_text = None
+        banner_color = (220, 30, 30)
+        
+        # Ưu tiên 1: Hết giờ
         if self.time_over:
-            msg = f"Hết giờ! {'Đen' if self.time_over_winner==1 else 'Trắng'} thắng."
-            banner = self.font_big.render(msg, True, (220,30,30))
-            rect = banner.get_rect(center=(self.W//2, max(30, my-160)))
+            winner_name = 'Đen' if self.time_over_winner == 1 else 'Trắng'
+            banner_text = f"HẾT GIỜ! {winner_name} thắng."
+            
+        # Ưu tiên 2: Kết quả theo điểm
+        elif self.final_result:
+            b_score, w_score_final, winner = self.final_result
+            if winner != 0:
+                winner_name = 'Đen' if winner == 1 else 'Trắng'
+                score_diff = abs(b_score - w_score_final)
+                
+                # Làm tròn điểm chênh lệch và hiển thị Ko-mi
+                komi_info = f" (+{w_score_final - b_score + score_diff:.1f} Komi)" if winner == -1 else ""
+                
+                banner_text = f"GAME OVER! {winner_name} thắng {score_diff:.1f} điểm{komi_info}"
+                banner_color = (30, 150, 30) # Màu xanh lá cho kết quả điểm
+            else:
+                banner_text = "HÒA (JIGO)!"
+                banner_color = (50, 50, 200)
+
+        if banner_text:
+            banner = self.font_big.render(banner_text, True, banner_color)
+            rect = banner.get_rect(center=(self.W // 2, max(30, my - 160)))
             self.screen.blit(banner, rect)
 
         # Hướng dẫn
