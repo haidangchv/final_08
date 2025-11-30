@@ -61,7 +61,6 @@ class GameScene:
             self.medium_font = pygame.font.Font(bold_path, 24)
             self.small_font  = pygame.font.Font(regular_path, 15)
 
-            print("Load font Sarabun thành công từ assets/fonts!")
         except Exception as e:
             print("Không tải được font, dùng font hệ thống:", e)
             # fallback nếu thiếu font
@@ -314,6 +313,27 @@ class GameScene:
             rect = banner.get_rect(center=(self.W//2, max(30, my-160)))
             self.screen.blit(banner, rect)
 
+        # Ưu tiên 2: Kết quả theo điểm
+        elif self.final_result:
+            b_score, w_score_final, winner = self.final_result
+            if winner != 0:
+                winner_name = 'Đen' if winner == 1 else 'Trắng'
+                score_diff = abs(b_score - w_score_final)
+                
+                # Làm tròn điểm chênh lệch và hiển thị Ko-mi
+                komi_info = f" (+{w_score_final - b_score + score_diff:.1f} Komi)" if winner == -1 else ""
+                
+                banner_text = f"GAME OVER! {winner_name} thắng {score_diff:.1f} điểm{komi_info}"
+                banner_color = (30, 150, 30) # Màu xanh lá cho kết quả điểm
+            else:
+                banner_text = "HÒA (JIGO)!"
+                banner_color = (50, 50, 200)
+
+        if banner_text:
+            banner = self.font_big.render(banner_text, True, banner_color)
+            rect = banner.get_rect(center=(self.W // 2, max(30, my - 160)))
+            self.screen.blit(banner, rect)
+        
         # Hướng dẫn
         # Vị trí 2 nút
         btn_w, btn_h = 180, 68
