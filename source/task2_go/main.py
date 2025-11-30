@@ -32,7 +32,12 @@ def main():
             if cfg is not None:
                 game = GameScene(screen, cfg); scene = "game"
         elif scene == "game":
-            game.step(); game.draw()
+            game.step()
+            result = game.draw(events)
+            if result == "menu":
+                scene = "menu"
+                menu = MenuScene(screen)
+                game = None
 
         pygame.display.flip(); clock.tick(60)
     pygame.quit()
