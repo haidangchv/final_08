@@ -32,10 +32,7 @@ class MenuScene:
             self.big_font   = pygame.font.Font(bold_path, 35)
             self.medium_font = pygame.font.Font(bold_path, 24)
             self.small_font  = pygame.font.Font(regular_path, 15)
-
-            print("Load font Sarabun thành công từ assets/fonts!")
         except Exception as e:
-            print("Không tải được font, dùng font hệ thống:", e)
             # fallback nếu thiếu font
             self.title_font = pygame.font.SysFont("arial", 90, bold=True)
             self.item_font  = pygame.font.SysFont("arial", 38, bold=True)

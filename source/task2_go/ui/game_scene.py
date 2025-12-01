@@ -62,7 +62,6 @@ class GameScene:
             self.small_font  = pygame.font.Font(regular_path, 15)
 
         except Exception as e:
-            print("Không tải được font, dùng font hệ thống:", e)
             # fallback nếu thiếu font
             self.title_font = pygame.font.SysFont("arial", 90, bold=True)
             self.item_font  = pygame.font.SysFont("arial", 38, bold=True)
@@ -78,6 +77,8 @@ class GameScene:
         self.time_over = False
         self.time_over_winner = None  # 1 hoặc -1
         self.final_result = None
+
+        self.show_endgame_popup = False   # để bật popup kết quả cuối
 
     def draw_glow_text(self, text, font, color, center, glow=True):
         if glow:
@@ -164,6 +165,7 @@ class GameScene:
 
         # 1. Nếu game đã kết thúc HOẶC đã hết giờ, tính điểm và dừng
         if self.state.is_terminal() or self.time_over:
+            self.show_endgame_popup = True   # bật popup kết quả
             if not self.final_result and not self.time_over:
                 # Nếu game kết thúc bởi 2 PASS/RESIGN (chứ không phải hết giờ)
                 try:
@@ -252,26 +254,44 @@ class GameScene:
             pygame.draw.rect(self.screen, red, (left + sizepx - thickness, top + sizepx - corner_size, thickness, corner_size))
 
         # 6) UI Trên: hai quân to + đồng hồ + lượt
-        top_y = my - 120
+                # 6) UI TRÊN – CHỮ "ĐEN/TRẮNG" NHÍCH LÊN SÁT QUÂN CỜ (đẹp nhất 2025)
+        top_y = my - 125                    # ← kéo cả cụm lên một chút (từ -120 → -125)
         black_center = (mx + board_w * 0.25, top_y)
         white_center = (mx + board_w * 0.75, top_y)
 
-        self.draw_stone(black_center, is_black=True, scale=1.3)
-        self.draw_stone(white_center, is_black=False, scale=1.3)
-
-        # Đồng hồ
-        blk_txt = self.big_font.render(_fmt_time(self.clock_total[BLACK]), True, (15,15,15))
-        wht_txt = self.big_font.render(_fmt_time(self.clock_total[WHITE]), True, (15,15,15))
-        self.screen.blit(blk_txt, blk_txt.get_rect(center=(black_center[0], top_y + 52)))
-        self.screen.blit(wht_txt, wht_txt.get_rect(center=(white_center[0], top_y + 52)))
-
-        # Lượt (đỏ)
         current_player = self.state.to_play
-        turn_text = self.font.render("Đen" if current_player==1 else "Trắng", True, (220, 20, 20))
-        if current_player == 1:
-            self.screen.blit(turn_text, turn_text.get_rect(center=(black_center[0], top_y + 86)))
-        else:
-            self.screen.blit(turn_text, turn_text.get_rect(center=(white_center[0], top_y + 86)))
+
+        # === Vẽ quân lớn (to hơn một chút khi tới lượt) ===
+        black_scale = 1.4 if current_player == 1 else 1.3
+        white_scale = 1.4 if current_player == -1 else 1.3
+        self.draw_stone(black_center, is_black=True,  scale=black_scale)
+        self.draw_stone(white_center, is_black=False, scale=white_scale)
+
+        # === Đồng hồ ===
+        blk_time = _fmt_time(self.clock_total[BLACK])
+        wht_time = _fmt_time(self.clock_total[WHITE])
+
+        # Đổi màu đồng hồ bên đang đi thành đỏ nhẹ cho dễ nhận biết
+        blk_color = (220, 30, 30) if current_player == 1 else (15, 15, 15)
+        wht_color = (220, 30, 30) if current_player == -1 else (15, 15, 15)
+
+        blk_txt = self.big_font.render(blk_time, True, blk_color)
+        wht_txt = self.big_font.render(wht_time, True, wht_color)
+
+        self.screen.blit(blk_txt, blk_txt.get_rect(center=(black_center[0], top_y + 54)))
+        self.screen.blit(wht_txt, wht_txt.get_rect(center=(white_center[0], top_y + 54)))
+
+        # === Chữ lượt – NHÍCH LÊN SÁT DƯỚI QUÂN CỜ (đẹp nhất ở +80) ===
+        # turn_text = self.font_big.render(           # dùng font_big cho to và đậm hơn
+        #     "Đen" if current_player == 1 else "Trắng",
+        #     True,
+        #     (240, 30, 30)
+        # )
+
+        # if current_player == 1:
+        #     self.screen.blit(turn_text, turn_text.get_rect(center=(black_center[0], top_y + 80)))
+        # else:
+        #     self.screen.blit(turn_text, turn_text.get_rect(center=(white_center[0], top_y + 80)))
 
         # --- BỔ SUNG: NÚT ĐẦU HÀNG (RESIGN) ---
         btn_w, btn_h = 100, 30
@@ -306,113 +326,145 @@ class GameScene:
         banner_text = None
         banner_color = (220, 30, 30)
         
-        # Ưu tiên 1: Hết giờ
-        if self.time_over:
-            msg = f"Hết giờ! {'Đen' if self.time_over_winner==1 else 'Trắng'} thắng."
-            banner = self.font_big.render(msg, True, (220,30,30))
-            rect = banner.get_rect(center=(self.W//2, max(30, my-160)))
-            self.screen.blit(banner, rect)
+        #POPUP KẾT QUẢ CUỐI (đầu hàng / hết giờ / tính điểm) 
+        if self.show_endgame_popup:
+            if self.time_over:
+                title = "Hết giờ!"
+                message = f"Hết giờ! {'Đen' if self.time_over_winner==1 else 'Trắng'} thắng."
+                title_color = (220, 50, 50)
+            elif self.final_result:
+                b_score, w_score_final, winner = self.final_result
+                if winner != 0:
+                    winner_name = 'Đen' if winner == 1 else 'Trắng'
+                    diff = abs(b_score - w_score_final)
+                    komi = f" (+{w_score_final - b_score + diff:.1f} Komi)" if winner == -1 else ""
+                    title = "GAME OVER!"
+                    message = f"{winner_name} thắng {diff:.1f} điểm{komi}"
+                    title_color = (50, 160, 50)
+                else:
+                    title = "HÒA!"
+                    message = "HÒA (JIGO)!"
+                    title_color = (70, 100, 200)
+            else:  # đầu hàng
+                winner_name = "Đen" if self.state.to_play == -1 else "Trắng"
+                title = "Đầu hàng!"
+                message = f"{winner_name} thắng do đối thủ đầu hàng!"
+                title_color = (220, 50, 50)
 
-        # Ưu tiên 2: Kết quả theo điểm
-        elif self.final_result:
-            b_score, w_score_final, winner = self.final_result
-            if winner != 0:
-                winner_name = 'Đen' if winner == 1 else 'Trắng'
-                score_diff = abs(b_score - w_score_final)
-                
-                # Làm tròn điểm chênh lệch và hiển thị Ko-mi
-                komi_info = f" (+{w_score_final - b_score + score_diff:.1f} Komi)" if winner == -1 else ""
-                
-                banner_text = f"GAME OVER! {winner_name} thắng {score_diff:.1f} điểm{komi_info}"
-                banner_color = (30, 150, 30) # Màu xanh lá cho kết quả điểm
-            else:
-                banner_text = "HÒA (JIGO)!"
-                banner_color = (50, 50, 200)
-
-        if banner_text:
-            banner = self.font_big.render(banner_text, True, banner_color)
-            rect = banner.get_rect(center=(self.W // 2, max(30, my - 160)))
-            self.screen.blit(banner, rect)
-        
-        # Hướng dẫn
-        # Vị trí 2 nút
-        btn_w, btn_h = 180, 68
-        spacing = 100 
-        center_y = self.H - 100
-
-        back_rect = pygame.Rect(self.W//2 - btn_w - spacing//2, center_y, btn_w, btn_h)
-        pass_rect = pygame.Rect(self.W//2 + spacing//2, center_y, btn_w, btn_h)
-
-        mx, my = pygame.mouse.get_pos()
-
-        click_event = None
-        for e in events:
-            if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
-                click_event = e
-                break  # chỉ cần 1 click
-
-        # === XỬ LÝ CLICK CHO 2 NÚT ===
-        if click_event:
-            if pass_rect.collidepoint(click_event.pos):
-                if not self.state.is_terminal():
-                    self.state = self.state.apply_move(Move.pass_())
-            elif back_rect.collidepoint(click_event.pos):
-                self.show_quit_confirm = True
-
-        # === VẼ 2 NÚT ===
-        for rect, text, is_back in [(back_rect, "Quay lại", True), (pass_rect, "Pass lượt", False)]:
-            hovered = rect.collidepoint(mx, my)
-
-            # Màu khác nhau cho 2 nút
-            if is_back:
-                base = (240, 210, 170)   
-                hover = (255, 235, 200)
-            else:
-                base = (240, 210, 170)  
-                hover = (255, 235, 200)
-
-            color = hover if hovered else base
-
-            pygame.draw.rect(self.screen, color, rect, border_radius=36)
-            pygame.draw.rect(self.screen, (160, 110, 70), rect, 3, border_radius=36)
-
-            txt_col = (100, 50, 15) if hovered else (70, 35, 10)
-            self.draw_glow_text(text, self.big_font, txt_col, rect.center, glow=False)
-
-        # === POPUP XÁC NHẬN THOÁT ===
-        if getattr(self, "show_quit_confirm", False):
+            # Vẽ popup
             overlay = pygame.Surface((self.W, self.H), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 180))
             self.screen.blit(overlay, (0, 0))
 
-            popup = pygame.Rect(0, 0, 580, 340)
-            popup.center = (self.W//2, self.H//2)
+            box = pygame.Rect(0, 0, 720, 460)
+            box.center = (self.W//2, self.H//2)
+            pygame.draw.rect(self.screen, (255, 250, 235), box, border_radius=60)
+            pygame.draw.rect(self.screen, (190, 130, 80), box, 10, border_radius=60)
 
-            pygame.draw.rect(self.screen, (248, 242, 215), popup, border_radius=40)
-            pygame.draw.rect(self.screen, (180, 120, 70), popup, 3, border_radius=40)
+            self.draw_glow_text(title, self.title_font, title_color, (box.centerx, box.top + 100))
+            self.draw_glow_text(message, self.big_font, (100, 50, 20), (box.centerx, box.centery + 20), glow=False)
 
-            self.draw_glow_text("Bạn có chắc muốn thoát không?", 
-                              self.big_font, (140, 50, 20), (self.W//2, popup.centery - 70), glow=False)
+            # 2 nút
+            btn_w, btn_h = 280, 86
+            menu_btn = pygame.Rect(0, 0, btn_w, btn_h)
+            menu_btn.center = (box.centerx, box.centery + 100)  # căn chính giữa
 
-            # Nút Không (trái) – Có (phải)
-            no_rect  = pygame.Rect(popup.left + 80,  popup.bottom - 130, 180, 80)
-            yes_rect = pygame.Rect(popup.right - 260, popup.bottom - 130, 180, 80)
+            mx, my = pygame.mouse.get_pos()
+            hovered = menu_btn.collidepoint(mx, my)
 
-            for rect, text, is_yes in [(no_rect, "Không", False), (yes_rect, "Có", True)]:
+            # Nút Về trang chủ
+            pygame.draw.rect(self.screen, 
+                             (220, 70, 70) if hovered else (200, 50, 50),
+                             menu_btn, border_radius=50)
+            pygame.draw.rect(self.screen, (255, 140, 140), menu_btn, 8, border_radius=50)
+            self.draw_glow_text("Về trang chủ", self.big_font, "white", menu_btn.center)
+
+            # Xử lý click
+            for e in events:
+                if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+                    if menu_btn.collidepoint(e.pos):
+                        return "menu"
+        
+        # Hướng dẫn
+        # Vị trí 2 nút
+        if not self.show_endgame_popup:
+            btn_w, btn_h = 180, 68
+            spacing = 100 
+            center_y = self.H - 100
+
+            back_rect = pygame.Rect(self.W//2 - btn_w - spacing//2, center_y, btn_w, btn_h)
+            pass_rect = pygame.Rect(self.W//2 + spacing//2, center_y, btn_w, btn_h)
+
+            mx, my = pygame.mouse.get_pos()
+
+            click_event = None
+            for e in events:
+                if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+                    click_event = e
+                    break  # chỉ cần 1 click
+
+            # === XỬ LÝ CLICK CHO 2 NÚT ===
+            if click_event:
+                if pass_rect.collidepoint(click_event.pos):
+                    if not self.state.is_terminal():
+                        self.state = self.state.apply_move(Move.pass_())
+                elif back_rect.collidepoint(click_event.pos):
+                    self.show_quit_confirm = True
+
+            # === VẼ 2 NÚT ===
+            for rect, text, is_back in [(back_rect, "Quay lại", True), (pass_rect, "Pass lượt", False)]:
                 hovered = rect.collidepoint(mx, my)
-                bg = (240, 210, 170) if not is_yes else (90, 170, 90)
-                if hovered:
-                    bg = (255, 230, 190) if not is_yes else (110, 190, 110)
 
-                pygame.draw.rect(self.screen, bg, rect, border_radius=40)
-                pygame.draw.rect(self.screen, (180, 120, 70), rect, 2, border_radius=40)
+                # Màu khác nhau cho 2 nút
+                if is_back:
+                    base = (240, 210, 170)   
+                    hover = (255, 235, 200)
+                else:
+                    base = (240, 210, 170)  
+                    hover = (255, 235, 200)
 
-                txt_col = (80, 40, 10) if not is_yes else (255, 255, 255)
+                color = hover if hovered else base
+
+                pygame.draw.rect(self.screen, color, rect, border_radius=36)
+                pygame.draw.rect(self.screen, (160, 110, 70), rect, 3, border_radius=36)
+
+                txt_col = (100, 50, 15) if hovered else (70, 35, 10)
                 self.draw_glow_text(text, self.big_font, txt_col, rect.center, glow=False)
 
-                # Xử lý click trong popup
-                if click_event and rect.collidepoint(click_event.pos):
-                    if is_yes:
-                        return "menu"                    # về menu
-                    else:
-                        self.show_quit_confirm = False   # đóng popup
+            # === POPUP XÁC NHẬN THOÁT ===
+            if getattr(self, "show_quit_confirm", False):
+                overlay = pygame.Surface((self.W, self.H), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 180))
+                self.screen.blit(overlay, (0, 0))
+
+                popup = pygame.Rect(0, 0, 580, 340)
+                popup.center = (self.W//2, self.H//2)
+
+                pygame.draw.rect(self.screen, (248, 242, 215), popup, border_radius=40)
+                pygame.draw.rect(self.screen, (180, 120, 70), popup, 3, border_radius=40)
+
+                self.draw_glow_text("Bạn có chắc muốn thoát không?", 
+                                self.big_font, (140, 50, 20), (self.W//2, popup.centery - 70), glow=False)
+
+                # Nút Không (trái) – Có (phải)
+                no_rect  = pygame.Rect(popup.left + 80,  popup.bottom - 130, 180, 80)
+                yes_rect = pygame.Rect(popup.right - 260, popup.bottom - 130, 180, 80)
+
+                for rect, text, is_yes in [(no_rect, "Không", False), (yes_rect, "Có", True)]:
+                    hovered = rect.collidepoint(mx, my)
+                    bg = (240, 210, 170) if not is_yes else (90, 170, 90)
+                    if hovered:
+                        bg = (255, 230, 190) if not is_yes else (110, 190, 110)
+
+                    pygame.draw.rect(self.screen, bg, rect, border_radius=40)
+                    pygame.draw.rect(self.screen, (180, 120, 70), rect, 2, border_radius=40)
+
+                    txt_col = (80, 40, 10) if not is_yes else (255, 255, 255)
+                    self.draw_glow_text(text, self.big_font, txt_col, rect.center, glow=False)
+
+                    # Xử lý click trong popup
+                    if click_event and rect.collidepoint(click_event.pos):
+                        if is_yes:
+                            return "menu"                    # về menu
+                        else:
+                            self.show_quit_confirm = False   # đóng popup
