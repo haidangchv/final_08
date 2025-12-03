@@ -1,4 +1,4 @@
-# config/settings.py
+# --- CẤU HÌNH GAME & AI ---
 BOARD_SIZE = 9
 DEFAULT_AI_DEPTH = 2
 
@@ -6,8 +6,8 @@ DEFAULT_AI_DEPTH = 2
 TIMEBOX_SEC = 2.0
 USE_ALPHA_BETA = True
 
-# --- Đồng hồ ván (UI) ---
+# --- ĐỒNG HỒ VÁN (UI) ---
 # Tổng thời gian cho mỗi bên (giây). Ví dụ: 300 = 5 phút
 CLOCK_SECONDS_PER_SIDE = 300
 # Nếu hết giờ: tự động RESIGN (bên kia thắng)
-ON_TIMEOUT_ACTION = "RESIGN"  # hoặc "PASS"
+ON_TIMEOUT_ACTION = "RESIGN" # Hoặc "PASS" để tự động PASS

@@ -7,18 +7,15 @@ from core.board import EMPTY, BLACK, WHITE, Board
 from core.move import Move
 from config.settings import TIMEBOX_SEC, USE_ALPHA_BETA
 
-# EvalFn bây giờ trỏ đến phương thức tĩnh
-EvalFn = Callable[[GameState, int], float]
-
 class MinimaxSearcher:
     """
     Minimax + Alpha-Beta + Move Ordering + Timebox.
-    Tất cả logic Heuristic đã được đóng gói bên trong class dưới dạng @staticmethod.
+    Logic Heuristic đã được đóng gói bên trong class.
     """
     def __init__(
         self,
         depth_limit: int = 2,
-        heuristic: EvalFn = None, 
+        heuristic: EvalFn = None,  
         time_limit_sec: Optional[float] = TIMEBOX_SEC,
         use_iterative_deepening: bool = True,
         use_move_ordering: bool = True,
@@ -103,15 +100,48 @@ class MinimaxSearcher:
         mine = MinimaxSearcher._capture_potential(state.board, player)
         opp  = MinimaxSearcher._capture_potential(state.board, -player)
         return float(mine - opp)
+    
+    @staticmethod
+    def _potential_score(board: Board, player: int) -> float:
+        """
+        Ước tính điểm lãnh thổ tiềm năng (số ô trống gần quân mình hơn).
+        Giá trị càng cao nếu mình bao vây được nhiều ô trống.
+        """
+        score = 0.0
+        MY_COLOR = player
+        OPP_COLOR = -player
 
+        for y in range(board.size):
+            for x in range(board.size):
+                if board.get(x, y) == EMPTY:
+                    # Đếm số láng giềng gần nhất
+                    my_neighbors = 0
+                    opp_neighbors = 0
+                    
+                    for nx, ny in board.neighbors(x, y):
+                        stone = board.get(nx, ny)
+                        if stone == MY_COLOR:
+                            my_neighbors += 1
+                        elif stone == OPP_COLOR:
+                            opp_neighbors += 1
+                    
+                    # Cộng điểm cho ô trống nếu nó có nhiều láng giềng cùng màu hơn
+                    if my_neighbors > opp_neighbors:
+                        score += 1.0 
+                    elif opp_neighbors > my_neighbors:
+                        score -= 1.0 # Trừ điểm nếu đối thủ có tiềm năng hơn
+                        
+        return score
+    
     @staticmethod
     def heuristic_score(state: GameState, player: int) -> float:
         """Hàm đánh giá Heuristic chính (được gọi bởi Minimax)."""
-        a, b, c = 1.0, 0.4, 0.8 
+        a, b, c, d = 1.0, 0.2, 0.5, 0.4
         return (
             a * MinimaxSearcher.stone_diff(state, player)
             + b * MinimaxSearcher.liberty_diff(state, player)
             + c * MinimaxSearcher.capture_threat_balance(state, player)
+            + d * MinimaxSearcher._potential_score(state.board, player)
         )
 
     # ====================================================================
@@ -281,3 +311,5 @@ class MinimaxSearcher:
         if self.time_limit_sec is None:
             return False
         return (time.perf_counter() - self._t0) >= self.time_limit_sec
+    
+EvalFn = Callable[[GameState, int], float]
