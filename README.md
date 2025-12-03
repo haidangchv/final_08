@@ -12,12 +12,11 @@ task2_go/
 |   |-- move.py
 |   |-- rules.py
 |   |
-|   |-- **agents.py** # Gom BaseAgent, HumanAgent, MinimaxAgent
-|   |-- **minimax.py** # Gom Heuristic function và MinimaxSearcher
+|   |-- **agents.py** 
+|   |-- **minimax.py**
 |
 |-- /ui
 |   |-- game_scene.py
 |   |-- menu.py
-|   |-- theme.py
 |
 |-- main.py
