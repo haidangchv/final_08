@@ -6,14 +6,8 @@ from core.board import BLACK, WHITE
 from core.agents.human_agent import HumanAgent
 from core.agents.minimax_agent import MinimaxAgent
 from core.search.minimax import MinimaxSearcher
-from config.settings import BOARD_SIZE
+from config.settings import BOARD_SIZE, ON_TIMEOUT_ACTION
 import os
-
-# Nếu trong settings có ON_TIMEOUT_ACTION thì import, còn không thì dùng fallback:
-try:
-    from config.settings import ON_TIMEOUT_ACTION
-except Exception:
-    ON_TIMEOUT_ACTION = "RESIGN"  # "RESIGN" hoặc "PASS"
 
 CELL = 60
 
@@ -281,18 +275,6 @@ class GameScene:
         self.screen.blit(blk_txt, blk_txt.get_rect(center=(black_center[0], top_y + 54)))
         self.screen.blit(wht_txt, wht_txt.get_rect(center=(white_center[0], top_y + 54)))
 
-        # === Chữ lượt – NHÍCH LÊN SÁT DƯỚI QUÂN CỜ (đẹp nhất ở +80) ===
-        # turn_text = self.font_big.render(           # dùng font_big cho to và đậm hơn
-        #     "Đen" if current_player == 1 else "Trắng",
-        #     True,
-        #     (240, 30, 30)
-        # )
-
-        # if current_player == 1:
-        #     self.screen.blit(turn_text, turn_text.get_rect(center=(black_center[0], top_y + 80)))
-        # else:
-        #     self.screen.blit(turn_text, turn_text.get_rect(center=(white_center[0], top_y + 80)))
-
         # --- BỔ SUNG: NÚT ĐẦU HÀNG (RESIGN) ---
         btn_w, btn_h = 100, 30
         btn_x = self.W - btn_w - 20 # Góc trên bên phải
@@ -328,10 +310,27 @@ class GameScene:
         
         #POPUP KẾT QUẢ CUỐI (đầu hàng / hết giờ / tính điểm) 
         if self.show_endgame_popup:
+            
+            # Xác định TÌNH TRẠNG KẾT THÚC
+            is_resign = self.state.move_history and self.state.move_history[-1].kind == 'RESIGN'
+
             if self.time_over:
                 title = "Hết giờ!"
                 message = f"Hết giờ! {'Đen' if self.time_over_winner==1 else 'Trắng'} thắng."
                 title_color = (220, 50, 50)
+                
+            elif is_resign:
+                winner_color = self.state.to_play
+                loser_color = -self.state.to_play
+                
+                winner_name = "Đen" if winner_color == 1 else "Trắng"
+                loser_name = "Đen" if loser_color == 1 else "Trắng"
+
+                title = "Đầu hàng!"
+                message = f"{winner_name} thắng do {loser_name} đầu hàng!"
+                title_color = (220, 50, 50)
+                
+                
             elif self.final_result:
                 b_score, w_score_final, winner = self.final_result
                 if winner != 0:
@@ -345,11 +344,6 @@ class GameScene:
                     title = "HÒA!"
                     message = "HÒA (JIGO)!"
                     title_color = (70, 100, 200)
-            else:  # đầu hàng
-                winner_name = "Đen" if self.state.to_play == -1 else "Trắng"
-                title = "Đầu hàng!"
-                message = f"{winner_name} thắng do đối thủ đầu hàng!"
-                title_color = (220, 50, 50)
 
             # Vẽ popup
             overlay = pygame.Surface((self.W, self.H), pygame.SRCALPHA)
