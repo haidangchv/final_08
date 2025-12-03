@@ -1,11 +1,10 @@
 import pygame
-from typing import Dict
 from core.game_state import GameState
 from core.move import Move
 from core.board import BLACK, WHITE
-from core.agents.human_agent import HumanAgent
-from core.agents.minimax_agent import MinimaxAgent
-from core.search.minimax import MinimaxSearcher
+from core.agents import HumanAgent
+from core.agents import MinimaxAgent
+from core.minimax import MinimaxSearcher
 from config.settings import BOARD_SIZE, ON_TIMEOUT_ACTION
 import os
 
@@ -29,17 +28,28 @@ class GameScene:
         self.margin_y = (self.H - self.board_pixel_size) // 2
 
         # Agents
-        if config.mode=="pvp":
-            self.agents={BLACK:HumanAgent(), WHITE:HumanAgent()}
-        else:
-            human=HumanAgent()
-            ai=MinimaxAgent(MinimaxSearcher(config.ai_depth), player_color=-config.human_color)
-            self.agents={config.human_color:human, -config.human_color:ai}
+        # Đảm bảo MinimaxSearcher được import và khởi tạo đúng
+        searcher = MinimaxSearcher(depth_limit=config.ai_depth) 
 
-        self.last_play=None
-        self.font=pygame.font.SysFont("arial",28)
-        self.font_small = pygame.font.SysFont("arial",15)
-        self.font_big = pygame.font.SysFont("arial",32, bold=True)
+        if config.mode=="pvp":
+            self.agents={
+                # Cần truyền màu sắc khi khởi tạo HumanAgent
+                BLACK: HumanAgent(player_color=BLACK), 
+                WHITE: HumanAgent(player_color=WHITE)
+            }
+        else: # Chế độ vs AI
+            human_color = config.human_color
+            ai_color = -config.human_color
+            
+            human_agent = HumanAgent(player_color=human_color)
+            
+            # Cần truyền searcher và màu sắc cho MinimaxAgent
+            ai_agent = MinimaxAgent(searcher=searcher, player_color=ai_color) 
+            
+            self.agents={
+                human_color: human_agent, 
+                ai_color: ai_agent
+            }
 
         # === FONTS ===
         try:
@@ -71,7 +81,7 @@ class GameScene:
         self.time_over = False
         self.time_over_winner = None  # 1 hoặc -1
         self.final_result = None
-
+        self.last_play = None # <-- BỔ SUNG DÒNG NÀY
         self.show_endgame_popup = False   # để bật popup kết quả cuối
 
     def draw_glow_text(self, text, font, color, center, glow=True):
@@ -163,10 +173,8 @@ class GameScene:
             if not self.final_result and not self.time_over:
                 # Nếu game kết thúc bởi 2 PASS/RESIGN (chứ không phải hết giờ)
                 try:
-                    # state.score() sẽ tính điểm và xác định người thắng.
                     self.final_result = self.state.score()
                 except ValueError:
-                    # Nếu state.is_terminal() là True nhưng có lỗi tính điểm (không nên xảy ra)
                     pass
             
             return "done" # Dừng cập nhật logic game
@@ -248,8 +256,7 @@ class GameScene:
             pygame.draw.rect(self.screen, red, (left + sizepx - thickness, top + sizepx - corner_size, thickness, corner_size))
 
         # 6) UI Trên: hai quân to + đồng hồ + lượt
-                # 6) UI TRÊN – CHỮ "ĐEN/TRẮNG" NHÍCH LÊN SÁT QUÂN CỜ (đẹp nhất 2025)
-        top_y = my - 125                    # ← kéo cả cụm lên một chút (từ -120 → -125)
+        top_y = my - 125                  
         black_center = (mx + board_w * 0.25, top_y)
         white_center = (mx + board_w * 0.75, top_y)
 
@@ -298,7 +305,7 @@ class GameScene:
             pygame.draw.rect(self.screen, hover_color if is_hovered else btn_color, self.resign_rect, border_radius=8)
             
             # Vẽ chữ
-            resign_text_surf = self.font_small.render("ĐẦU HÀNG", True, (255, 255, 255))
+            resign_text_surf = self.small_font.render("ĐẦU HÀNG", True, (255, 255, 255))
             text_rect = resign_text_surf.get_rect(center=self.resign_rect.center)
             self.screen.blit(resign_text_surf, text_rect)
         else:

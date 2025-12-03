@@ -1,25 +1,23 @@
 # final_08
 FINAL PROJECT Introduction to Artificial Intelligence
 
-/source/task2_go/
-├─ assets/
-│  └─ images/
-├─ config/
-│  └─ settings.py # <-- Hằng số game (kích thước, depth L)
-├─ core/
-│  ├─ board.py
-│  ├─ rules.py
-│  ├─ game_state.py
-│  ├─ move.py
-│  ├─ search/
-│  │  ├─ minimax.py
-│  │  └─ heuristic.py # <-- 
-│  └─ agents/
-│     ├─ base_agent.py
-│     ├─ human_agent.py
-│     └─ minimax_agent.py
-├─ ui/
-│  ├─ menu.py
-│  ├─ game_scene.py
-│  └─ theme.py
-└─ main.py
+task2_go/
+|-- /assets
+|-- /config
+|   |-- settings.py
+|
+|-- /core                       # Logic cốt lõi của Game & AI
+|   |-- board.py
+|   |-- game_state.py
+|   |-- move.py
+|   |-- rules.py
+|   |
+|   |-- **agents.py** # Gom BaseAgent, HumanAgent, MinimaxAgent
+|   |-- **minimax.py** # Gom Heuristic function và MinimaxSearcher
+|
+|-- /ui
+|   |-- game_scene.py
+|   |-- menu.py
+|   |-- theme.py
+|
+|-- main.py

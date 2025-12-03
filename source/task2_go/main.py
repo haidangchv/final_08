@@ -3,7 +3,7 @@ import pygame
 from ui.menu import MenuScene
 from ui.game_scene import GameScene
 from core.move import Move
-from core.agents.human_agent import HumanAgent
+from core.agents import HumanAgent
 
 def main():
     pygame.init()
