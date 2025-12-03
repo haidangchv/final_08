@@ -1,7 +1,7 @@
 # sudoku_main.py
 from sudoku_model import Grid
-from sudoku_agent import solve_by_sat
-from sudoku_view import print_grid, visualize_sudoku
+from sudoku_agent import SudokuSATAgent
+from sudoku_view import SudokuView
 
 # ----------------- VÍ DỤ ĐỀ MẪU -----------------
 PUZZLE: Grid = [
@@ -17,21 +17,40 @@ PUZZLE: Grid = [
 ]
 
 
-def main():
-    print("=== SUDOKU ĐỀ BAN ĐẦU ===")
-    print_grid(PUZZLE)
+class SudokuApp:
+    """
+    Lớp "ứng dụng" kết hợp:
+    - Model (Grid / CNFEncoder)
+    - Agent (SudokuSATAgent)
+    - View  (SudokuView)
+    và điều khiển luồng chạy chính.
+    """
+    def __init__(self, puzzle: Grid):
+        self.puzzle = puzzle
+        self.agent = SudokuSATAgent()
+        self.view = SudokuView()
 
-    print("\nĐang giải bằng SAT (Glucose3)...")
-    sol = solve_by_sat(PUZZLE)
+    def run(self):
+        print("=== SUDOKU ĐỀ BAN ĐẦU ===")
+        self.view.print_grid(self.puzzle)
 
-    if sol is None:
-        print("Không tìm được nghiệm (hoặc chưa cài python-sat).")
-    else:
+        print("\nĐang giải bằng SAT (Glucose3)...")
+        sol = self.agent.solve(self.puzzle)
+
+        if sol is None:
+            print("Không tìm được nghiệm (hoặc chưa cài python-sat).")
+            return
+
         print("\n=== NGHIỆM SUDOKU (in console) ===")
-        print_grid(sol)
+        self.view.print_grid(sol)
 
         print("\nMở cửa sổ trực quan hóa...")
-        visualize_sudoku(PUZZLE, sol)
+        self.view.visualize(self.puzzle, sol)
+
+
+def main():
+    app = SudokuApp(PUZZLE)
+    app.run()
 
 
 if __name__ == "__main__":

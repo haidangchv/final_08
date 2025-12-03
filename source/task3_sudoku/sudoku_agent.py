@@ -1,6 +1,6 @@
 # sudoku_agent.py
 from typing import Optional
-from sudoku_model import Grid, CNFEncoder
+from sudoku_model import Grid, CNFEncoder, var_id
 
 # --------- SAT solver (PySAT / Glucose3) ----------
 try:
@@ -10,40 +10,49 @@ except Exception:
     HAS_PYSAT = False
 
 
-def solve_by_sat(grid: Grid) -> Optional[Grid]:
+class SudokuSATAgent:
     """
-    Agent giải Sudoku bằng SAT:
-    - Nhận đầu vào: grid 9x9 (0 = ô trống, 1..9 = số đã cho).
-    - Build CNF bằng CNFEncoder.
-    - Gọi Glucose3 (PySAT) để tìm model thỏa tất cả câu mệnh đề.
-    - Trả về nghiệm Sudoku (ma trận 9x9) hoặc None nếu không giải được.
+    Agent giải Sudoku bằng SAT.
+    Trách nhiệm:
+    - Nhận một grid 9x9.
+    - Mã hóa bằng CNFEncoder.
+    - Gọi SAT solver (Glucose3) để tìm nghiệm.
     """
-    if not HAS_PYSAT:
-        print("Lỗi: Cần cài thư viện 'python-sat' (pip install python-sat).")
-        return None
+    def __init__(self):
+        if not HAS_PYSAT:
+            # Có thể raise hoặc chỉ in cảnh báo tuỳ bạn
+            print("Cảnh báo: Chưa cài 'python-sat' (pip install python-sat).")
 
-    # Dùng đối tượng OOP CNFEncoder để sinh CNF
-    enc = CNFEncoder(grid)
-    cnf = enc.build_cnf()
+    def solve(self, grid: Grid) -> Optional[Grid]:
+        """
+        Giải Sudoku:
+        - Input: grid (0 = ô trống, 1..9 = số đã cho)
+        - Output: grid nghiệm 9x9 hoặc None nếu không giải được.
+        """
+        if not HAS_PYSAT:
+            print("Lỗi: Cần cài thư viện 'python-sat'.")
+            return None
 
-    solver = Glucose3()
-    for cl in cnf:
-        solver.add_clause(cl)
+        # Dùng đối tượng OOP CNFEncoder để sinh CNF
+        enc = CNFEncoder(grid)
+        cnf = enc.build_cnf()
 
-    if not solver.solve():
-        return None
+        solver = Glucose3()
+        for cl in cnf:
+            solver.add_clause(cl)
 
-    model = set(solver.get_model())
-    out: Grid = [[0] * 9 for _ in range(9)]
+        if not solver.solve():
+            return None
 
-    # Giải mã model -> ma trận 9x9
-    from sudoku_model import var_id  # import local để tránh vòng lặp import ở đầu file
+        model = set(solver.get_model())
+        out: Grid = [[0] * 9 for _ in range(9)]
 
-    for r in range(1, 10):
-        for c in range(1, 10):
-            for v in range(1, 10):
-                if var_id(r, c, v) in model:
-                    out[r - 1][c - 1] = v
-                    break
+        # Giải mã model -> ma trận 9x9
+        for r in range(1, 10):
+            for c in range(1, 10):
+                for v in range(1, 10):
+                    if var_id(r, c, v) in model:
+                        out[r - 1][c - 1] = v
+                        break
 
-    return out
+        return out
