@@ -1,4 +1,3 @@
-
 import pygame
 from ui.menu import MenuScene
 from ui.game_scene import GameScene

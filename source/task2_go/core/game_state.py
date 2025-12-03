@@ -33,7 +33,8 @@ class GameState:
             for x in range(self.board.size):
                 if rules.is_legal(self.board, self.to_play, x, y, last_hash=last_hash):
                     moves.append(Move.play(x,y))
-        moves.append(Move.pass_()); moves.append(Move.resign())
+        moves.append(Move.pass_()); 
+        #moves.append(Move.resign())
         return moves
 
     def is_terminal(self)->bool:

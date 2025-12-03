@@ -3,10 +3,8 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Optional
-
-# Cần import từ các module cùng cấp (core)
 from core.move import Move 
-from core.minimax import MinimaxSearcher # Giữ nguyên đường dẫn này nếu bạn chưa gộp minimax.py
+from core.minimax import MinimaxSearcher 
 
 # === 1. BaseAgent ===
 class BaseAgent(ABC):
