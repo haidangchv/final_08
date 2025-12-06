@@ -136,7 +136,7 @@ class MinimaxSearcher:
     @staticmethod
     def heuristic_score(state: GameState, player: int) -> float:
         """Hàm đánh giá Heuristic chính (được gọi bởi Minimax)."""
-        a, b, c, d = 1.0, 0.2, 0.5, 0.4
+        a, b, c, d = 1.0, 0.2, 0.5, 0.3
         return (
             a * MinimaxSearcher.stone_diff(state, player)
             + b * MinimaxSearcher.liberty_diff(state, player)

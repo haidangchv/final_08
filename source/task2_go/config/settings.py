@@ -3,7 +3,7 @@ BOARD_SIZE = 9
 DEFAULT_AI_DEPTH = 2
 
 # Thời gian cho AI suy nghĩ mỗi nước (timebox cho MinimaxSearcher)
-TIMEBOX_SEC = 2.0
+TIMEBOX_SEC = 3.0
 USE_ALPHA_BETA = True
 
 # --- ĐỒNG HỒ VÁN (UI) ---

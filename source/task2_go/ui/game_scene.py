@@ -7,13 +7,7 @@ from core.agents import MinimaxAgent
 from core.minimax import MinimaxSearcher
 from config.settings import BOARD_SIZE, ON_TIMEOUT_ACTION
 import os
-
 CELL = 60
-
-def _fmt_time(seconds: float) -> str:
-    s = max(0, int(seconds))
-    m, s = divmod(s, 60)
-    return f"{m:02d}:{s:02d}"
 
 class GameScene:
     def __init__(self, screen, config):
@@ -93,7 +87,7 @@ class GameScene:
         txt_rect = txt.get_rect(center=center)
         self.screen.blit(txt, txt_rect)
         return txt_rect
-
+    
     # ====== VẼ QUÂN ======
     def draw_stone(self, center, is_black, scale=1.0):
         x, y = center
@@ -469,3 +463,8 @@ class GameScene:
                             return "menu"                    # về menu
                         else:
                             self.show_quit_confirm = False   # đóng popup
+
+def _fmt_time(seconds: float) -> str:
+    s = max(0, int(seconds))
+    m, s = divmod(s, 60)
+    return f"{m:02d}:{s:02d}"

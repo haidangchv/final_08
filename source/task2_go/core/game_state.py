@@ -50,9 +50,6 @@ class GameState:
         Tính điểm cuối cùng theo Territory Scoring (Lãnh thổ + Quân bắt + Komi).
         Trả về: (Black_Final_Score, White_Final_Score, Winner_Color)
         """
-        if not self.is_terminal():
-            raise ValueError("Không thể tính điểm khi trò chơi chưa kết thúc.")
-        
         rules = Rules()
         # 1. Tính Lãnh thổ (Territory) và Quân trên bàn (Area)
         black_territory, white_territory, _ = rules.calculate_territory(self.board)
